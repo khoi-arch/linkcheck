@@ -23,12 +23,25 @@ VOCA_REGEX = re.compile(r"https?://voca(?:\.ro|roo\.com)/[A-Za-z0-9]+")
 
 # --- Helper: Lấy đường dẫn file (cho PyInstaller) ---
 def resource_path(relative_path):
+    """ Lấy đường dẫn tuyệt đối đến tài nguyên, hoạt động cho cả dev và PyInstaller """
     try:
+        # PyInstaller tạo ra folder tạm này và lưu đường dẫn vào _MEIPASS
         base_path = sys._MEIPASS
     except Exception:
         base_path = os.path.abspath(".")
-    return os.path.join(base_path, relative_path)
 
+    path = os.path.join(base_path, relative_path)
+    
+    # --- THÊM ĐOẠN NÀY ĐỂ DEBUG TRÊN MAC ---
+    # Nếu file tồn tại, cấp quyền thực thi ngay lập tức (Fix lỗi binary not found/permission denied)
+    if os.path.exists(path):
+        try:
+            os.chmod(path, 0o755) # Cấp quyền rwxr-xr-x
+        except Exception:
+            pass
+            
+    return path
+    
 # --- Helper: Chuyển tên cột sang số ---
 def col_to_num(col_str):
     n = 0
