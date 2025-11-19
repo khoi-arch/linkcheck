@@ -1,0 +1,57 @@
+name: Build macOS App
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+
+    - name: Download Edge Driver (Mac x64)
+      run: |
+        # Tải driver bản ổn định mới nhất
+        curl -o msedgedriver.zip https://msedgedriver.azureedge.net/131.0.2903.51/edgedriver_mac64.zip
+        unzip msedgedriver.zip
+        # Dọn dẹp file rác
+        rm -rf msedgedriver.zip Driver_Notes
+        # Đổi tên file driver thành 'msedgedriver' cho khớp với code Python
+        mv msedgedriver msedgedriver_temp
+        mv msedgedriver_temp msedgedriver
+        # Cấp quyền chạy cho driver (Rất quan trọng trên Mac)
+        chmod +x msedgedriver
+
+    - name: Build with PyInstaller
+      run: |
+        # Đóng gói code và nhúng driver vào bên trong
+        pyinstaller --noconfirm --onefile --windowed --noconsole \
+          --add-binary "msedgedriver:." \
+          --name "VocaChecker" \
+          main.py
+
+    - name: Zip the App
+      run: |
+        cd dist
+        # Nén file .app lại thành .zip để người dùng tải về
+        zip -r VocaChecker_Mac.zip VocaChecker.app
+
+    - name: Upload Result
+      uses: actions/upload-artifact@v4
+      with:
+        name: App-Cho-MacOS
+        path: dist/VocaChecker_Mac.zip
